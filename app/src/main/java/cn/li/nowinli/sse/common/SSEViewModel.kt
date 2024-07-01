@@ -1,7 +1,9 @@
 package cn.li.nowinli.sse.common
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cn.li.nowinli.BuildConfig
 import cn.li.nowinli.network.OkHttpClientInstance
 import cn.li.nowinli.network.OkHttpClientType
 import cn.li.nowinli.network.SSEApi
@@ -25,9 +27,11 @@ class SSEViewModel @Inject constructor(
 ) :
     ViewModel() {
 
-
     private val sseRequest =
-        Request.Builder().url("http://10.34.120.75:8080/events").method("GET", null).build()
+        Request.Builder().url("${BuildConfig.BASE_URL}/events").method("GET", null).build()
+            .also {
+                Log.d("SSEViewModel", "url: ${BuildConfig.BASE_URL} ")
+            }
 
 
     private val _realEventSourceState = MutableSharedFlow<SSEState>(2).also {
@@ -84,6 +88,12 @@ class SSEViewModel @Inject constructor(
     fun sendMessage(message: String) {
         viewModelScope.launch(Dispatchers.IO) {
             sseApi.sendEvent(message)
+        }
+    }
+
+    fun sendNotification(message: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            sseApi.sendNotification(message)
         }
     }
 }

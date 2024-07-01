@@ -1,13 +1,11 @@
 package cn.li.nowinli.sse.service
 
 import android.Manifest
-import android.app.Notification
-import android.app.NotificationChannel
+import android.annotation.SuppressLint
 import android.app.NotificationManager
 import android.app.Service
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
+import android.graphics.Color
 import android.media.RingtoneManager
 import android.os.Handler
 import android.os.IBinder
@@ -15,14 +13,16 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
-import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.graphics.drawable.toBitmap
+import cn.li.nowinli.BuildConfig
 import cn.li.nowinli.R
 import cn.li.nowinli.network.OkHttpClientInstance
 import cn.li.nowinli.network.OkHttpClientType
+import cn.li.nowinli.network.SSEApi
+import cn.li.nowinli.utils.checkPermissionGranted
+import com.fasterxml.jackson.databind.ObjectMapper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,18 +31,16 @@ import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
-import okhttp3.internal.notify
 import okhttp3.internal.sse.RealEventSource
 import okhttp3.sse.EventSource
 import okhttp3.sse.EventSourceListener
 import javax.inject.Inject
 import kotlin.coroutines.EmptyCoroutineContext
-import kotlin.jvm.internal.Reflection
 
 @AndroidEntryPoint
 class SSEService : Service() {
     private val sseRequest =
-        Request.Builder().url("http://10.34.120.75:8080/notification").build()
+        Request.Builder().url("${BuildConfig.BASE_URL}/notification").build()
 
     @OkHttpClientInstance(OkHttpClientType.SSE)
     @Inject
@@ -58,6 +56,8 @@ class SSEService : Service() {
 
     private val notificationChannelId = "SSE-Notification"
 
+    @Inject
+    lateinit var mapper: ObjectMapper
     companion object {
         private val TAG = SSEService::class.simpleName
     }
@@ -86,10 +86,13 @@ class SSEService : Service() {
                     type: String?,
                     data: String
                 ) {
-                    Log.d(TAG, "onEvent: ")
+                    Log.d(TAG, "    onEvent: ")
                     handler.post {
-                        Toast.makeText(this@SSEService, data, Toast.LENGTH_SHORT).show()
-                        sendNotification(data)
+                        if (type == "connect") {
+                            Toast.makeText(this@SSEService, data, Toast.LENGTH_SHORT).show()
+                        } else {
+                            sendNotification(data)
+                        }
                     }
                 }
 
@@ -133,47 +136,43 @@ class SSEService : Service() {
     }
 
 
-    private fun sendNotification(message: String) {
-        val notificationManager = hannelCompat.Builder(
-            notificationChannelId,
-            NotificationManagerCompat.IMPORTANCE_HIGH
-        )
-            .setName("Hello")
-//            .setSound()
-            .build()
-
-        val notChannel = NotificationChannel(notificationChannelId, "Hello", NotificationManager.IMPORTANCE_HIGH)
-            .apply {
-                setSound()
-                setShowBadge(true)
-
-                setConversationId()
-                setAllowBubbles()
-                this.enableVibration()
-
+    @SuppressLint(value = ["MissingPermission", "InlinedApi"])
+    private fun sendNotification(value: String) {
+        val message = mapper.readValue(value, NotificationBean::class.java).message
+        checkPermissionGranted(this, Manifest.permission.POST_NOTIFICATIONS)
+            .onGranted {
+                cn.li.nowinli.utils.sendNotification(
+                    context = this,
+                    notificationId = notificationId++,
+                    channelFactory = {
+                        NotificationChannelCompat.Builder(
+                            notificationChannelId,
+                            NotificationManager.IMPORTANCE_HIGH
+                        )
+                            .setDescription("发送SSE服务器发送的数据通知")
+                            .setName("SSE服务器消息")
+                            .setLightsEnabled(true)
+                            .setLightColor(Color.RED)
+                            .setVibrationEnabled(true)
+                            .build()
+                    }
+                ) {
+                    NotificationCompat.Builder(this, it!!)
+                        .setPriority(NotificationCompat.PRIORITY_MAX)
+                        .setContentTitle("SSE")
+                        .setContentText(message)
+                        .setSmallIcon(R.drawable.ic_launcher_foreground)
+                        .setLargeIcon(
+                            AppCompatResources.getDrawable(this, R.drawable.ic_launcher_foreground)
+                                ?.toBitmap()
+                        )
+                        .setWhen(System.currentTimeMillis() + 1000)
+                        .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+                        .build()
+                }
+            }.onDenied {
+                Toast.makeText(this, "请授予通知权限", Toast.LENGTH_SHORT).show()
             }
-        notificationManager.createNotificationChannel(channel)
-
-        val notification = NotificationCompat.Builder(this, notificationChannelId)
-//            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setContentTitle("SSE")
-            .setContentText(message)
-            .setSmallIcon(androidx.core.R.drawable.ic_call_answer)
-            .setLargeIcon(
-                AppCompatResources.getDrawable(this, R.drawable.ic_launcher_foreground)?.toBitmap()
-            )
-            .setWhen(System.currentTimeMillis() + 1000)
-            .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
-            .build()
-
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            notificationManager.notify(notificationId, notification)
-            notificationId++
-        }
 
     }
 }

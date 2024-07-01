@@ -1,14 +1,30 @@
 package cn.li.nowinli.sse.service
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.Log
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import cn.li.nowinli.databinding.ActivitySseServiceBinding
+import cn.li.nowinli.network.SSEApi
+import cn.li.nowinli.sse.common.SSEViewModel
+import cn.li.nowinli.utils.checkPermissionGranted
+import cn.li.nowinli.utils.checkVersion
+import cn.li.nowinli.utils.requestPermissionsChecked
+import cn.li.nowinli.utils.showToast
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 
 /**
@@ -16,7 +32,8 @@ import cn.li.nowinli.databinding.ActivitySseServiceBinding
  *
  * Created by YeMengLiChou on 2024/6/29
  * */
-class SSEServiceActivity: AppCompatActivity() {
+@AndroidEntryPoint
+class SSEServiceActivity : AppCompatActivity() {
 
     private val binding by lazy(LazyThreadSafetyMode.NONE) {
         ActivitySseServiceBinding.inflate(layoutInflater)
@@ -25,6 +42,12 @@ class SSEServiceActivity: AppCompatActivity() {
     private val serviceIntent by lazy(LazyThreadSafetyMode.NONE) {
         Intent(this@SSEServiceActivity, SSEService::class.java)
     }
+
+
+    private var message: String = ""
+
+    @Inject
+    lateinit var sseApi: SSEApi
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,19 +62,21 @@ class SSEServiceActivity: AppCompatActivity() {
         checkPermission()
     }
 
-
+    @SuppressLint("InlinedApi")
     private fun checkPermission() {
-
-        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 100)
-            }
+        checkVersion(Build.VERSION_CODES.TIRAMISU) {
+            checkPermissionGranted(this, Manifest.permission.POST_NOTIFICATIONS)
+                .onDenied {
+                    requestPermissionsChecked(
+                        this,
+                        arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                        100
+                    )
+                }
         }
     }
 
     private fun initView() {
-        binding.textViewServiceStatus
-
 
         binding.buttonStartService.setOnClickListener {
             startService(serviceIntent)
@@ -61,7 +86,40 @@ class SSEServiceActivity: AppCompatActivity() {
             stopService(serviceIntent)
         }
 
+        binding.editTextSend.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
 
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+                message = s.toString()
+            }
+        })
+
+        binding.buttonSend.setOnClickListener {
+            if (message.isBlank()) {
+                showToast("请输入消息")
+            } else {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    kotlin.runCatching {
+                        sseApi.sendNotification(message)
+                    }.onSuccess {
+                        withContext(Dispatchers.Main) {
+                            showToast("发送成功")
+                        }
+                    }.onFailure {
+                        Log.e("SSEServiceActivity", "initView: ", it)
+                        withContext(Dispatchers.Main) {
+                            showToast("发送失败")
+                        }
+                    }
+                }
+            }
+        }
     }
 
 }

@@ -1,5 +1,6 @@
 package cn.li.nowinli.network
 
+import cn.li.nowinli.BuildConfig
 import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
@@ -21,6 +22,17 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 class NetworkModule {
 
+    @Singleton
+    @Provides
+    fun providesObjectMapper(): ObjectMapper {
+        return ObjectMapper().apply {
+            registerModule(
+                KotlinModule.Builder()
+                    .configure(KotlinFeature.StrictNullChecks, true)
+                    .build()
+            )
+        }
+    }
 
     @OkHttpClientInstance(type = OkHttpClientType.NORMAL)
     @Singleton
@@ -48,20 +60,17 @@ class NetworkModule {
     @Singleton
     @Provides
     fun providesRetrofit(
+        mapper: ObjectMapper,
         @OkHttpClientInstance(type = OkHttpClientType.NORMAL)
         okHttpClient: OkHttpClient
     ): Retrofit {
         return Retrofit.Builder().client(okHttpClient)
-            .addConverterFactory(JacksonConverterFactory.create(
-                ObjectMapper().apply {
-                    registerModule(
-                        KotlinModule.Builder()
-                            .configure(KotlinFeature.StrictNullChecks, true)
-                            .build()
-                    )
-                }
-            ))
-            .baseUrl("http://10.34.120.75:8080/")
+            .addConverterFactory(
+                JacksonConverterFactory.create(
+                    mapper
+                )
+            )
+            .baseUrl(BuildConfig.BASE_URL)
             .build()
     }
 

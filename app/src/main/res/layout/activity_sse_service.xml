@@ -7,9 +7,9 @@
     tools:context=".sse.service.SSEServiceActivity">
 
     <LinearLayout
+        android:id="@+id/linear_layout_service"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -36,5 +36,24 @@
             android:layout_height="wrap_content"
             android:text="关闭服务" />
     </LinearLayout>
+
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/editText_send"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/linear_layout_service"
+        app:layout_constraintWidth_percent="0.5"
+        app:layout_constraintEnd_toStartOf="@id/button_send"/>
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/button_send"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="发送消息"
+        app:layout_constraintHorizontal_bias="0"
+        app:layout_constraintStart_toEndOf="@id/editText_send"
+        app:layout_constraintTop_toTopOf="@+id/editText_send"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

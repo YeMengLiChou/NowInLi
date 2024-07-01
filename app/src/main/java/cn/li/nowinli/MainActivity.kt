@@ -11,6 +11,7 @@ import cn.li.nowinli.adapter.ProjectItemAdapter
 import cn.li.nowinli.bean.ProjectInfo
 import cn.li.nowinli.databinding.ActivityMainBinding
 import cn.li.nowinli.sse.common.SSEActivity
+import cn.li.nowinli.sse.service.SSEServiceActivity
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -25,9 +26,16 @@ class MainActivity : AppCompatActivity() {
 
 
     private val projectInfos = listOf(
-        ProjectInfo("SSE服务端推送通知", "服务端通过SSE发送消息给客户端", 1719154693110) {
+        ProjectInfo("SSE服务端推送通知-1", "服务端通过SSE发送消息给客户端", 1719154693110) {
             startActivity(Intent().apply {
                 setClass(this@MainActivity, SSEActivity::class.java)
+                setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            })
+        }
+        ,
+        ProjectInfo("SSE服务端推送通知-2", "结合Service发送消息", 1719154693110) {
+            startActivity(Intent().apply {
+                setClass(this@MainActivity, SSEServiceActivity::class.java)
                 setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             })
         }

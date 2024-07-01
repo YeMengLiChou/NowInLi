@@ -19,7 +19,7 @@ hilt = "2.51.1"
 okhttp3 = "4.12.0"
 viewModelKtx = "2.8.2"
 jackson="2.17.1"
-
+secrets = "2.0.1"
 
 
 [libraries]
@@ -68,6 +68,9 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 hilt-android-plugin = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp"}
+
+# generate build.config filed
+secrets = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secrets" }
 
 # custom
 li-android-application = { id = "cn.li.android.application", version = "unspecified" }

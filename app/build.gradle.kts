@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.li.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.li.android.hilt)
+    alias(libs.plugins.secrets)
 }
 
 android {
@@ -15,6 +16,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -27,6 +30,7 @@ android {
     buildFeatures {
         viewBinding = true
 //        aidl = true
+        buildConfig = true
     }
 
     sourceSets {
@@ -36,6 +40,11 @@ android {
             }
         }
     }
+}
+
+secrets {
+    defaultPropertiesFileName = "secrets.properties"
+
 }
 
 dependencies {
